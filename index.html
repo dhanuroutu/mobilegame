@@ -152,8 +152,8 @@
     p { color: #aaa4c5; line-height: 1.5; }
     #message { min-height: 1.5em; color: #ffe27a; text-align: center; font-weight: 700; }
     .mobile-help { display: none; }
-    @media (max-width: 600px) {
-      .controls { display: none; }
+    @media (max-width: 700px), (hover: none) and (pointer: coarse) {
+      .controls { display: none !important; }
       .desktop-help { display: none; }
       .mobile-help { display: block; text-align: center; }
     }

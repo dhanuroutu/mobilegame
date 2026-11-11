@@ -1,4 +1,4 @@
-const CACHE_NAME = "2048-neon-v1";
+const CACHE_NAME = "2048-neon-v2";
 const APP_FILES = [
   "./",
   "./index.html",
