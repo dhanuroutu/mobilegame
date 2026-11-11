@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "2048 Neon",
+  "short_name": "2048",
+  "description": "A colorful, mobile-friendly 2048 tile puzzle game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090d1c",
+  "theme_color": "#17132d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

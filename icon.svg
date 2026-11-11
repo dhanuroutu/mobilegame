@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#5738a5"/>
+      <stop offset="1" stop-color="#090d1c"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#ffe27a"/>
+      <stop offset="1" stop-color="#ff8ad8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="76" y="76" width="360" height="360" rx="58" fill="#ffffff12" stroke="#ffffff30" stroke-width="8"/>
+  <rect x="118" y="118" width="128" height="128" rx="28" fill="#35d7cf"/>
+  <rect x="266" y="118" width="128" height="128" rx="28" fill="#56e39a"/>
+  <rect x="118" y="266" width="128" height="128" rx="28" fill="#ffad52"/>
+  <rect x="266" y="266" width="128" height="128" rx="28" fill="url(#tile)"/>
+  <g fill="#fff" font-family="system-ui,sans-serif" font-size="56" font-weight="800" text-anchor="middle">
+    <text x="182" y="198">2</text>
+    <text x="330" y="198">4</text>
+    <text x="182" y="346">8</text>
+    <text x="330" y="346">16</text>
+  </g>
+</svg>

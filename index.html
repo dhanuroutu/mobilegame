@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>2048</title>
+  <meta name="theme-color" content="#17132d">
+  <meta name="description" content="A colorful, mobile-friendly 2048 tile puzzle game.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 28px 16px;
+      color: #f5f3ff;
+      font-family: system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse at 15% 10%, #5738a5 0, transparent 38%),
+        linear-gradient(145deg, #17132d, #090d1c 75%);
+    }
+    main {
+      width: min(100%, 440px);
+      margin: auto;
+      padding: 22px;
+      border: 1px solid #ffffff20;
+      border-radius: 24px;
+      background: #ffffff0b;
+      box-shadow: 0 24px 70px #0006;
+      backdrop-filter: blur(12px);
+    }
+    header { display: flex; align-items: center; justify-content: space-between; }
+    h1 {
+      margin: 0;
+      font-size: 3.5rem;
+      letter-spacing: -4px;
+      background: linear-gradient(90deg, #ffe27a, #ff8ad8);
+      color: transparent;
+      background-clip: text;
+    }
+    button {
+      border: 1px solid #ffffff25;
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: linear-gradient(135deg, #8058e8, #5736b8);
+      color: white;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s, filter .15s;
+    }
+    button:hover { filter: brightness(1.2); transform: translateY(-2px); }
+    button:active { transform: scale(.95); }
+    .info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0;
+      color: #d3cdea;
+      font-size: .9rem;
+    }
+    .scores { display: flex; gap: 8px; }
+    .score-box {
+      min-width: 70px;
+      padding: 7px 10px;
+      border: 1px solid #ffffff1c;
+      border-radius: 12px;
+      background: #ffffff10;
+      color: #d6caff;
+      text-align: center;
+      font-size: .7rem;
+      letter-spacing: 1px;
+    }
+    .score-box strong { display: block; color: white; font-size: 1.15rem; }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #ffffff20;
+      border-radius: 18px;
+      background: #090b19b8;
+      box-shadow: inset 0 0 24px #0005;
+      touch-action: none;
+      user-select: none;
+    }
+    .cell {
+      display: grid;
+      aspect-ratio: 1;
+      place-items: center;
+      border: 1px solid #ffffff0c;
+      border-radius: 12px;
+      background: #ffffff0b;
+      color: white;
+      font-size: clamp(1.3rem, 8vw, 2.2rem);
+      font-weight: 800;
+    }
+    .tile-2 { background: linear-gradient(145deg, #35d7cf, #168fae); }
+    .tile-4 { background: linear-gradient(145deg, #56e39a, #159c75); }
+    .tile-8 { background: linear-gradient(145deg, #b3ed57, #6ea51c); }
+    .tile-16 { background: linear-gradient(145deg, #ffe45e, #f3a322); }
+    .tile-32 { background: linear-gradient(145deg, #ffad52, #ed653c); }
+    .tile-64 { background: linear-gradient(145deg, #ff7195, #d83a79); }
+    .tile-high { background: linear-gradient(145deg, #c786ff, #7045df); }
+    .tile-new { animation: tile-in .32s cubic-bezier(.2, 1.5, .5, 1); }
+    .tile-merged {
+      animation: merge-pop .38s cubic-bezier(.2, 1.7, .4, 1);
+      box-shadow: 0 0 22px #ffe46b99;
+      z-index: 1;
+    }
+    @keyframes tile-in {
+      from { transform: scale(.2) rotate(-12deg); opacity: .3; }
+      to { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    @keyframes merge-pop {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.2) rotate(3deg); }
+      100% { transform: scale(1); }
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(3, 56px);
+      gap: 6px;
+      justify-content: center;
+      margin: 16px auto;
+    }
+    .controls button { padding: 10px; font-size: 1.2rem; }
+    .controls button:first-child { grid-column: 2; }
+    .controls button:nth-child(2) { grid-column: 1; }
+    .controls button:nth-child(3) { grid-column: 2; }
+    .controls button:nth-child(4) { grid-column: 3; }
+    p { color: #aaa4c5; line-height: 1.5; }
+    #message { min-height: 1.5em; color: #ffe27a; text-align: center; font-weight: 700; }
+    @media (max-width: 380px) {
+      main { padding: 16px; }
+      .info { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>2048</h1>
+      <button id="restart">New Game</button>
+    </header>
+
+    <div class="info">
+      <span>Join the tiles to reach 2048.</span>
+      <div class="scores">
+        <div class="score-box">SCORE<strong id="score">0</strong></div>
+        <div class="score-box">BEST<strong id="best">0</strong></div>
+      </div>
+    </div>
+
+    <div id="board" aria-label="2048 game board"></div>
+    <div class="controls" aria-label="Move controls">
+      <button data-dir="up" aria-label="Move up">↑</button>
+      <button data-dir="left" aria-label="Move left">←</button>
+      <button data-dir="down" aria-label="Move down">↓</button>
+      <button data-dir="right" aria-label="Move right">→</button>
+    </div>
+    <div id="message" aria-live="polite"></div>
+    <p>Use the arrow keys, swipe, or the buttons to move tiles.</p>
+  </main>
+
+  <script>
+    const boardEl = document.querySelector("#board");
+    const scoreEl = document.querySelector("#score");
+    const bestEl = document.querySelector("#best");
+    const messageEl = document.querySelector("#message");
+
+    let board, score, won, keepPlaying;
+    let mergedTiles = new Set();
+    let spawnedTile = -1;
+
+    function startGame() {
+      board = Array(16).fill(0);
+      score = 0;
+      won = false;
+      keepPlaying = false;
+      mergedTiles = new Set();
+      spawnedTile = -1;
+      messageEl.textContent = "";
+      addTile();
+      addTile();
+      render();
+    }
+
+    function addTile() {
+      const empty = board.map((value, index) => value === 0 ? index : -1).filter(index => index >= 0);
+      if (empty.length) {
+        spawnedTile = empty[Math.floor(Math.random() * empty.length)];
+        board[spawnedTile] = Math.random() < 0.9 ? 2 : 4;
+      }
+    }
+
+    function render() {
+      boardEl.replaceChildren();
+      board.forEach((value, index) => {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        if (value) {
+          cell.textContent = value;
+          cell.classList.add(value <= 64 ? `tile-${value}` : "tile-high");
+          if (index === spawnedTile) cell.classList.add("tile-new");
+          if (mergedTiles.has(index)) cell.classList.add("tile-merged");
+        }
+        boardEl.appendChild(cell);
+      });
+      scoreEl.textContent = score;
+      bestEl.textContent = Math.max(score, Number(localStorage.getItem("best2048") || 0));
+    }
+
+    function move(direction) {
+      if (isGameOver() || (won && !keepPlaying)) return;
+
+      mergedTiles = new Set();
+      spawnedTile = -1;
+      let changed = false;
+      for (let line = 0; line < 4; line++) {
+        const indexes = Array.from({ length: 4 }, (_, step) => {
+          if (direction === "left") return line * 4 + step;
+          if (direction === "right") return line * 4 + (3 - step);
+          if (direction === "up") return step * 4 + line;
+          return (3 - step) * 4 + line;
+        });
+
+        const oldValues = indexes.map(index => board[index]);
+        const values = oldValues.filter(Boolean);
+        for (let i = 0; i < values.length - 1; i++) {
+          if (values[i] === values[i + 1]) {
+            values[i] *= 2;
+            mergedTiles.add(indexes[i]);
+            score += values[i];
+            values.splice(i + 1, 1);
+            if (values[i] === 2048 && !won) {
+              won = true;
+              messageEl.textContent = "You reached 2048! Keep going or start a new game.";
+            }
+          }
+        }
+        while (values.length < 4) values.push(0);
+
+        indexes.forEach((index, i) => {
+          if (board[index] !== values[i]) changed = true;
+          board[index] = values[i];
+        });
+      }
+
+      if (changed) {
+        addTile();
+        if (score > Number(localStorage.getItem("best2048") || 0)) {
+          localStorage.setItem("best2048", score);
+        }
+        render();
+        if (isGameOver()) messageEl.textContent = "Game over! Start a new game to try again.";
+      }
+    }
+
+    function isGameOver() {
+      if (board.some(value => value === 0)) return false;
+      for (let i = 0; i < 16; i++) {
+        if (i % 4 < 3 && board[i] === board[i + 1]) return false;
+        if (i < 12 && board[i] === board[i + 4]) return false;
+      }
+      return true;
+    }
+
+    document.addEventListener("keydown", event => {
+      const directions = {
+        ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right"
+      };
+      if (directions[event.key]) {
+        event.preventDefault();
+        move(directions[event.key]);
+      }
+    });
+
+    document.querySelectorAll("[data-dir]").forEach(button => {
+      button.addEventListener("click", () => move(button.dataset.dir));
+    });
+
+    let startX = 0, startY = 0;
+    boardEl.addEventListener("pointerdown", event => {
+      startX = event.clientX;
+      startY = event.clientY;
+    });
+    boardEl.addEventListener("pointerup", event => {
+      const dx = event.clientX - startX;
+      const dy = event.clientY - startY;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 25) return;
+      move(Math.abs(dx) > Math.abs(dy)
+        ? (dx > 0 ? "right" : "left")
+        : (dy > 0 ? "down" : "up"));
+    });
+
+    document.querySelector("#restart").addEventListener("click", startGame);
+    startGame();
+
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(error => {
+          console.error("Service worker registration failed:", error);
+        });
+      });
+    }
+  </script>
+</body>
+</html>
