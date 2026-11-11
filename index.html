@@ -79,10 +79,10 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
       padding: 10px;
-      border: 1px solid #ffffff20;
+      border: 2px solid #a78bfa;
       border-radius: 18px;
-      background: #090b19b8;
-      box-shadow: inset 0 0 24px #0005;
+      background: #090b19e8;
+      box-shadow: inset 0 0 24px #0008, 0 0 20px #8058e844;
       touch-action: none;
       user-select: none;
     }
@@ -90,13 +90,31 @@
       display: grid;
       aspect-ratio: 1;
       place-items: center;
-      border: 1px solid #ffffff0c;
+      border: 1px solid #ffffff35;
       border-radius: 12px;
-      background: #ffffff0b;
+      background: #ffffff12;
       color: white;
       font-size: clamp(1.3rem, 8vw, 2.2rem);
       font-weight: 800;
     }
+    #board-container { position: relative; }
+    #game-over {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 10px;
+      padding: 24px;
+      border: 2px solid #ff8ad8;
+      border-radius: 18px;
+      background: #100d25eF;
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
+    #game-over[hidden] { display: none; }
+    #game-over h2 { margin: 0; color: #ffe27a; font-size: 2rem; }
+    #game-over p { margin: 0 0 8px; color: #e4ddfa; }
     .tile-2 { background: linear-gradient(145deg, #35d7cf, #168fae); }
     .tile-4 { background: linear-gradient(145deg, #56e39a, #159c75); }
     .tile-8 { background: linear-gradient(145deg, #b3ed57, #6ea51c); }
@@ -133,6 +151,12 @@
     .controls button:nth-child(4) { grid-column: 3; }
     p { color: #aaa4c5; line-height: 1.5; }
     #message { min-height: 1.5em; color: #ffe27a; text-align: center; font-weight: 700; }
+    .mobile-help { display: none; }
+    @media (max-width: 600px) {
+      .controls { display: none; }
+      .desktop-help { display: none; }
+      .mobile-help { display: block; text-align: center; }
+    }
     @media (max-width: 380px) {
       main { padding: 16px; }
       .info { align-items: flex-start; flex-direction: column; }
@@ -154,7 +178,14 @@
       </div>
     </div>
 
-    <div id="board" aria-label="2048 game board"></div>
+    <div id="board-container">
+      <div id="board" aria-label="2048 game board"></div>
+      <section id="game-over" role="alertdialog" aria-labelledby="game-over-title" aria-describedby="game-over-description" hidden>
+        <h2 id="game-over-title">Game over!</h2>
+        <p id="game-over-description">No moves are left. Start a new game and try again.</p>
+        <button id="play-again">Start a new game</button>
+      </section>
+    </div>
     <div class="controls" aria-label="Move controls">
       <button data-dir="up" aria-label="Move up">↑</button>
       <button data-dir="left" aria-label="Move left">←</button>
@@ -162,7 +193,8 @@
       <button data-dir="right" aria-label="Move right">→</button>
     </div>
     <div id="message" aria-live="polite"></div>
-    <p>Use the arrow keys, swipe, or the buttons to move tiles.</p>
+    <p class="desktop-help">Use the arrow keys, swipe, or the buttons to move tiles.</p>
+    <p class="mobile-help">Swipe the board to move tiles.</p>
   </main>
 
   <script>
@@ -170,6 +202,7 @@
     const scoreEl = document.querySelector("#score");
     const bestEl = document.querySelector("#best");
     const messageEl = document.querySelector("#message");
+    const gameOverEl = document.querySelector("#game-over");
 
     let board, score, won, keepPlaying;
     let mergedTiles = new Set();
@@ -183,6 +216,7 @@
       mergedTiles = new Set();
       spawnedTile = -1;
       messageEl.textContent = "";
+      gameOverEl.hidden = true;
       addTile();
       addTile();
       render();
@@ -218,6 +252,8 @@
 
       mergedTiles = new Set();
       spawnedTile = -1;
+      const startingRects = Array.from(boardEl.children, cell => cell.getBoundingClientRect());
+      const movementOrigins = new Map();
       let changed = false;
       for (let line = 0; line < 4; line++) {
         const indexes = Array.from({ length: 4 }, (_, step) => {
@@ -229,12 +265,14 @@
 
         const oldValues = indexes.map(index => board[index]);
         const values = oldValues.filter(Boolean);
+        const origins = indexes.filter(index => board[index] !== 0);
         for (let i = 0; i < values.length - 1; i++) {
           if (values[i] === values[i + 1]) {
             values[i] *= 2;
             mergedTiles.add(indexes[i]);
             score += values[i];
             values.splice(i + 1, 1);
+            origins.splice(i + 1, 1);
             if (values[i] === 2048 && !won) {
               won = true;
               messageEl.textContent = "You reached 2048! Keep going or start a new game.";
@@ -246,6 +284,9 @@
         indexes.forEach((index, i) => {
           if (board[index] !== values[i]) changed = true;
           board[index] = values[i];
+          if (values[i] && origins[i] !== undefined) {
+            movementOrigins.set(index, origins[i]);
+          }
         });
       }
 
@@ -255,8 +296,30 @@
           localStorage.setItem("best2048", score);
         }
         render();
-        if (isGameOver()) messageEl.textContent = "Game over! Start a new game to try again.";
+        animateTileMoves(startingRects, movementOrigins);
+        if (isGameOver()) gameOverEl.hidden = false;
       }
+    }
+
+    function animateTileMoves(startingRects, movementOrigins) {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      movementOrigins.forEach((fromIndex, toIndex) => {
+        if (fromIndex === toIndex || toIndex === spawnedTile) return;
+        const from = startingRects[fromIndex];
+        const to = boardEl.children[toIndex].getBoundingClientRect();
+        const deltaX = from.left - to.left;
+        const deltaY = from.top - to.top;
+        if (deltaX === 0 && deltaY === 0) return;
+
+        boardEl.children[toIndex].animate(
+          [
+            { translate: `${deltaX}px ${deltaY}px` },
+            { translate: "0 0" }
+          ],
+          { duration: 170, easing: "cubic-bezier(.2, .75, .25, 1)" }
+        );
+      });
     }
 
     function isGameOver() {
@@ -297,6 +360,7 @@
     });
 
     document.querySelector("#restart").addEventListener("click", startGame);
+    document.querySelector("#play-again").addEventListener("click", startGame);
     startGame();
 
     if ("serviceWorker" in navigator) {
